@@ -61,8 +61,8 @@ cd C:\path\to\your\project
 # Install dependencies
 pip install -r requirements.txt
 
-# Create Version.txt
-echo 0.1.0 > Version.txt
+# Create version.txt
+echo 0.1.0 > version.txt
 
 # Create workflow directory
 mkdir .github\workflows
@@ -113,8 +113,8 @@ source .venv/bin/activate
 # Install dependencies
 pip install -r requirements.txt
 
-# Create Version.txt
-echo "0.1.0" > Version.txt
+# Create version.txt
+echo "0.1.0" > version.txt
 
 # Create workflow directory
 mkdir -p .github/workflows
@@ -177,8 +177,8 @@ source .venv/bin/activate
 # Install dependencies
 pip install -r requirements.txt
 
-# Create Version.txt
-echo "0.1.0" > Version.txt
+# Create version.txt
+echo "0.1.0" > version.txt
 
 # Create workflow directory
 mkdir -p .github/workflows
@@ -244,7 +244,7 @@ your-project/
 ├── deploy_ui.py             # Interactive UI
 ├── requirements.txt         # Python dependencies
 ├── config.yaml              # Configuration (optional)
-├── Version.txt              # Version tracking
+├── version.txt              # Version tracking
 ├── setup.py                 # Package setup (optional)
 ├── .gitignore              # Git ignore rules
 ├── README.md               # Project documentation
@@ -262,7 +262,7 @@ your-project/
 - [ ] `deploy.py` - Main script
 - [ ] `deploy_ui.py` - UI script (optional)
 - [ ] `requirements.txt` - Dependencies
-- [ ] `Version.txt` - Version file
+- [ ] `version.txt` - Version file
 - [ ] `.github/workflows/deploy.yml` - CI/CD workflow
 - [ ] `.gitignore` - Git ignore configuration
 
@@ -397,8 +397,8 @@ $env:GITHUB_TOKEN     # Windows PowerShell
 ### Quick Start Deployment
 
 ```bash
-# 1. Ensure Version.txt exists
-cat Version.txt
+# 1. Ensure version.txt exists
+cat version.txt
 # Should show: 0.1.0
 
 # 2. Run deployment (dry run without push)
@@ -515,7 +515,7 @@ Before your first deployment, verify:
 - [ ] Python 3.9+ installed and accessible
 - [ ] Git 2.0+ installed and configured
 - [ ] All dependencies installed (`pip install -r requirements.txt`)
-- [ ] `Version.txt` created with initial version
+- [ ] `version.txt` created with initial version
 - [ ] `.github/workflows/deploy.yml` in place
 - [ ] GitHub token configured (optional but recommended)
 - [ ] `.gitignore` configured properly

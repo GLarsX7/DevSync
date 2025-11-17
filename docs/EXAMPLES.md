@@ -8,7 +8,7 @@ Common usage scenarios for DevSync.
 
 ```bash
 # First deployment
-echo "0.1.0" > Version.txt
+echo "0.1.0" > version.txt
 python deploy.py
 
 # Minor version bump
@@ -24,7 +24,7 @@ python deploy.py --bump major
 
 ```bash
 # Start with stable
-echo "1.0.0" > Version.txt
+echo "1.0.0" > version.txt
 
 # Alpha release
 python deploy.py  # → 1.0.1a
@@ -78,7 +78,7 @@ Edit `config.yaml` to change branch patterns, merge behavior, etc. Most settings
 - Create tag manually if needed
 
 **Rollback**
-- Manually set version in `Version.txt`
+- Manually set version in `version.txt`
 - Commit and deploy
 
 ---

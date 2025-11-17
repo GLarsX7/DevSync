@@ -12,7 +12,7 @@ DevSync follows smart branching, semantic versioning, and workflow automation to
 - **Automatic branch creation** - Creates `develop-{username}` branches automatically
 - **One-command deployment** - Single command handles the entire workflow
 - **CI/CD integration** - Triggers and monitors pipeline status
-- **Semantic versioning** - Automatic version bumps using `Version.txt`
+- **Semantic versioning** - Automatic version bumps using `version.txt`
 - **Git tags & releases** - Automatic tag creation and GitHub releases
 - **GitHub compatible** - Works with any GitHub repository
 - **Optional UI** - Terminal interface for logs, status, and version control
@@ -36,7 +36,7 @@ DevSync follows smart branching, semantic versioning, and workflow automation to
 pip install -r requirements.txt
 
 # Create version file
-echo "0.1.0" > Version.txt
+echo "0.1.0" > version.txt
 
 # Run deployment
 python deploy.py
@@ -91,7 +91,7 @@ Edit `config.yaml` to customize behavior. Main settings:
 
 ```yaml
 version:
-  file: "Version.txt"
+  file: "version.txt"
   bump_type: "patch"
 
 git:
@@ -116,7 +116,7 @@ Environment variables:
 
 1. Validate git repository
 2. Configure git user if needed
-3. Read current version from `Version.txt`
+3. Read current version from `version.txt`
 4. Create development branch (`develop-{username}`)
 5. Bump version
 6. Commit and push changes
@@ -167,7 +167,7 @@ python deploy.py
 
 **"Invalid version format"**
 ```bash
-echo "0.1.0" > Version.txt
+echo "0.1.0" > version.txt
 ```
 
 **"GitHub token not found"**
@@ -183,7 +183,7 @@ Enable debug logging: `export DEPLOY_DEBUG="true"`
 deploy.py              # Main script
 deploy_ui.py           # Interactive UI
 config.yaml            # Configuration
-Version.txt            # Version file
+version.txt            # Version file
 requirements.txt       # Dependencies
 ```
 

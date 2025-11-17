@@ -4,7 +4,7 @@
 
 DevSync automates the version bumping and deployment process:
 
-1. **Reads** your current version from `Version.txt`
+1. **Reads** your current version from `version.txt`
 2. **Creates** a development branch (`develop-{your-username}`)
 3. **Bumps** the version (patch/minor/major)
 4. **Commits** and **pushes** the changes
@@ -23,7 +23,7 @@ pip install -r requirements.txt
 ### 2. Create Version File
 
 ```bash
-echo "0.1.0" > Version.txt
+echo "0.1.0" > version.txt
 ```
 
 ### 3. Make Sure Git is Configured
@@ -55,7 +55,7 @@ your-project/
 ├── deploy_ui.py           # Copy this (optional)
 ├── config.yaml            # Copy this (optional)
 ├── requirements.txt       # Add dependencies to your existing one
-└── Version.txt            # Create this file
+└── version.txt            # Create this file
 ```
 
 **Steps:**
@@ -73,10 +73,10 @@ your-project/
    pip install PyYAML requests
    ```
 
-3. **Create Version.txt in your project:**
+3. **Create version.txt in your project:**
    ```bash
    cd /path/to/your/project
-   echo "0.1.0" > Version.txt
+   echo "0.1.0" > version.txt
    ```
 
 4. **Make sure you're in a git repository:**
@@ -103,7 +103,7 @@ If you want to use it from anywhere:
 2. **Use from any project:**
    ```bash
    cd /path/to/your/project
-   echo "0.1.0" > Version.txt
+   echo "0.1.0" > version.txt
    deploy  # or deploy-ui
    ```
 
@@ -205,7 +205,7 @@ your-project/
 ├── deploy.py              # Deploy script
 ├── deploy_ui.py           # UI version (optional)
 ├── config.yaml            # Config (optional)
-├── Version.txt            # Current version (required)
+├── version.txt            # Current version (required)
 ├── .github/
 │   └── workflows/
 │       └── deploy.yml     # CI/CD workflow (optional)
@@ -227,9 +227,9 @@ python deploy.py
 ```
 
 ### "Invalid version format"
-Make sure `Version.txt` contains a valid version:
+Make sure `version.txt` contains a valid version:
 ```bash
-echo "0.1.0" > Version.txt
+echo "0.1.0" > version.txt
 ```
 
 ### "GitHub token not found"
@@ -251,7 +251,7 @@ python deploy.py
 
 # 4. Tool automatically:
 #    - Creates develop-{username} branch
-#    - Bumps version in Version.txt
+#    - Bumps version in version.txt
 #    - Commits and pushes
 #    - Triggers CI/CD
 #    - Merges to main (if auto_merge enabled)

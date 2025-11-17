@@ -2,7 +2,7 @@
 # Most of this isn't actually used yet, but kept for future expansion
 
 version:
-  file: "Version.txt"
+  file: "version.txt"
   bump_type: "patch"  # major, minor, patch
   auto_bump: true
 
