@@ -1,0 +1,41 @@
+# Deploy automation config
+# Most of this isn't actually used yet, but kept for future expansion
+
+version:
+  file: "Version.txt"
+  bump_type: "patch"  # major, minor, patch
+  auto_bump: true
+
+git:
+  branch_pattern: "develop-{username}"
+  main_branch: "main"
+  auto_merge: true
+  merge_strategy: "no-ff"
+
+github:
+  token_source: "env"  # reads from GITHUB_TOKEN env var
+  workflow:
+    wait_for_completion: true
+    timeout: 600
+  release:
+    create_release: true
+    generate_notes: true
+
+# TODO: implement config file loading
+# Most of these settings are hardcoded for now
+# This file is kept for reference and future use
+
+# Notifications - not implemented yet
+notifications:
+  enabled: false
+
+# Logging - basic implementation only
+logging:
+  level: "INFO"
+  file: "deploy.log"
+
+# Features - some planned, not all implemented
+features:
+  hooks:
+    pre_deploy: ""
+    post_deploy: ""
