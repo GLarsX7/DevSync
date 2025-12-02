@@ -389,6 +389,14 @@ class GitHubManager:
                 # Use modern Auth method to avoid deprecation warning
                 auth = Auth.Token(self.token)
                 self.github = Github(auth=auth)
+                
+                # Diagnostic: Print token scopes
+                try:
+                    user = self.github.get_user()
+                    print(f"GitHub Token Scopes: {self.github.oauth_scopes}")
+                except Exception as scope_error:
+                    print(f"Could not retrieve token scopes: {scope_error}")
+
             except Exception as e:
                 print(f"Failed to initialize GitHub client with Auth: {e}")
                 # Fallback for older PyGithub versions
