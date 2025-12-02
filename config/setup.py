@@ -6,8 +6,8 @@ Setup script for DevSync
 from setuptools import setup, find_packages
 from pathlib import Path
 
-# Read version from Version.txt if it exists
-version_file = Path("Version.txt")
+# Read version from version.txt if it exists
+version_file = Path("version.txt")
 if version_file.exists():
     version = version_file.read_text().strip()
 else:

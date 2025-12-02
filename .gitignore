@@ -1,4 +1,4 @@
-/venv/
-/_pycache_/
-/dist/
-/build/
+venv/
+__pycache__/
+dist/
+build/

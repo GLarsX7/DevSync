@@ -1,0 +1,6 @@
+include version.txt
+include CHANGELOG.md
+include README.md
+include LICENSE
+include requirements.txt
+recursive-include tests *.py
