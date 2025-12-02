@@ -38,7 +38,7 @@ except ImportError:
     KEYRING_AVAILABLE = False
 
 try:
-    from github import Github, GithubException
+    from github import Github, GithubException, Auth
     GITHUB_AVAILABLE = True
 except ImportError:
     GITHUB_AVAILABLE = False
@@ -386,9 +386,16 @@ class GitHubManager:
         
         if GITHUB_AVAILABLE and self.token:
             try:
-                self.github = Github(self.token)
-            except:
-                pass
+                # Use modern Auth method to avoid deprecation warning
+                auth = Auth.Token(self.token)
+                self.github = Github(auth=auth)
+            except Exception as e:
+                print(f"Failed to initialize GitHub client with Auth: {e}")
+                # Fallback for older PyGithub versions
+                try:
+                    self.github = Github(self.token)
+                except:
+                    pass
     
     def _get_repo_info(self) -> Dict[str, str]:
         """Extract owner and repo name from git remote"""
@@ -428,9 +435,16 @@ class GitHubManager:
                 prerelease=prerelease
             )
             return release.html_url
+        except GithubException as e:
+            if e.status == 403:
+                print(f"Permission Error: {e}")
+                print("Please ensure your GitHub token has 'repo' scope (Classic) or 'contents: write' (Fine-grained).")
+            else:
+                print(f"Failed to create release: {e}")
+            raise e  # Re-raise to show in GUI logs
         except Exception as e:
             print(f"Failed to create release: {e}")
-            return None
+            raise e
     
     def get_releases(self) -> List[GitHubRelease]:
         """Get all releases"""

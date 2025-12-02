@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.0a] - 2025-12-02
+
+### 🐛 Bug Fixes
+
+- **GitHub Authentication**: Fixed `DeprecationWarning` by migrating to `github.Auth.Token`.
+- **Error Handling**: Added clear error messages for `403 Forbidden` (permission) errors during release creation.
+- **Dependencies**: Restored missing imports (`git`, `yaml`, `markdown`) that were causing runtime errors.
+- **Code Cleanup**: Removed duplicate `GitHubManager` class definition.
+
 ## [1.0.0] - 2025-12-02
 
 ### 🎉 Major Release - Complete GUI Transformation
