@@ -458,7 +458,7 @@ class GitHubManager:
             for rel in repo.get_releases():
                 releases.append(GitHubRelease(
                     tag_name=rel.tag_name,
-                    name=rel.title,
+                    name=rel.name,
                     body=rel.body,
                     draft=rel.draft,
                     prerelease=rel.prerelease,
