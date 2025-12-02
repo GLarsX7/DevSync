@@ -424,10 +424,19 @@ class GitHubManager:
                       draft: bool = False, prerelease: bool = False) -> Optional[str]:
         """Create GitHub release"""
         if not self.github:
+            print("❌ GitHub client not initialized")
             return None
         
         try:
-            repo = self.github.get_repo(f"{self.repo_info['owner']}/{self.repo_info['repo']}")
+            repo_name = f"{self.repo_info['owner']}/{self.repo_info['repo']}"
+            print(f"📦 Attempting to create release for {repo_name}")
+            print(f"🏷️  Tag: {tag}")
+            print(f"📝 Name: {name}")
+            print(f"📄 Draft: {draft}, Prerelease: {prerelease}")
+            
+            repo = self.github.get_repo(repo_name)
+            print(f"✅ Repository accessed: {repo.full_name}")
+            
             release = repo.create_git_release(
                 tag=tag,
                 name=name,
@@ -435,16 +444,22 @@ class GitHubManager:
                 draft=draft,
                 prerelease=prerelease
             )
+            print(f"✅ Release created successfully: {release.html_url}")
             return release.html_url
         except GithubException as e:
+            print(f"❌ GitHub API Error: {e.status} - {e.data}")
             if e.status == 403:
-                print(f"Permission Error: {e}")
+                print(f"🔒 Permission Error: {e}")
                 print("Please ensure your GitHub token has 'repo' scope (Classic) or 'contents: write' (Fine-grained).")
+                print(f"Token scopes detected: {self.github.oauth_scopes}")
+            elif e.status == 404:
+                print(f"❌ Repository or tag not found: {repo_name}")
+                print(f"Make sure the tag '{tag}' exists and has been pushed to GitHub")
             else:
-                print(f"Failed to create release: {e}")
+                print(f"❌ Failed to create release: {e}")
             raise e  # Re-raise to show in GUI logs
         except Exception as e:
-            print(f"Failed to create release: {e}")
+            print(f"❌ Unexpected error creating release: {type(e).__name__}: {e}")
             raise e
     
     def get_releases(self) -> List[GitHubRelease]:
@@ -1609,9 +1624,17 @@ class DevSyncMainWindow(QMainWindow):
             QMessageBox.warning(self, "Error", "Please enter a token")
             return
         
+        # Validate token format (GitHub tokens are typically 40+ characters)
+        if len(token) < 20:
+            QMessageBox.warning(self, "Error", f"Token seems too short ({len(token)} characters). GitHub tokens are typically 40+ characters.")
+            return
+        
+        print(f"💾 Saving token (length: {len(token)} characters)")
+        print(f"🔑 Token preview: {token[:8]}...{token[-4:]}")
+        
         token_mgr = TokenManager()
         if token_mgr.save_token(token):
-            QMessageBox.information(self, "Success", "Token saved successfully!")
+            QMessageBox.information(self, "Success", f"Token saved successfully!\nLength: {len(token)} characters")
             self.github_token.clear()
         else:
             QMessageBox.warning(self, "Error", "Failed to save token")
@@ -1624,6 +1647,9 @@ class DevSyncMainWindow(QMainWindow):
         if not token:
             QMessageBox.warning(self, "Error", "No token found. Please save one first.")
             return
+        
+        print(f"🔍 Testing token (length: {len(token)} characters)")
+        print(f"🔑 Token preview: {token[:8]}...{token[-4:]}")
             
         try:
             if GITHUB_AVAILABLE:
