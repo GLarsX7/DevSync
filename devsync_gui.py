@@ -976,15 +976,8 @@ class ProgressPage(QWizardPage):
     def initializePage(self):
         """Start deployment"""
         # Get GitHub token
-        github_token = None
-        if KEYRING_AVAILABLE:
-            try:
-                github_token = keyring.get_password("devsync", "github_token")
-            except:
-                pass
-        
-        if not github_token:
-            github_token = os.environ.get("GITHUB_TOKEN")
+        token_mgr = TokenManager()
+        github_token = token_mgr.get_token() or os.environ.get("GITHUB_TOKEN")
         
         config = self.wizard().config.copy()
         config['github_token'] = github_token
@@ -1070,6 +1063,72 @@ class ResultsPage(QWizardPage):
             self.result_label.setText("❌ Deployment failed")
             self.result_label.setStyleSheet("font-size: 16px; color: red; padding: 20px;")
             self.details.setPlainText(f"Error: {message}")
+
+
+# ============================================================================
+# MAIN WINDOW
+# ============================================================================
+
+# ============================================================================
+# TOKEN MANAGEMENT
+# ============================================================================
+
+class TokenManager:
+    """Handle secure token storage with fallback"""
+    
+    def __init__(self):
+        self.service_name = "devsync"
+        self.username = "github_token"
+        self.fallback_file = Path(".devsync_token")
+    
+    def save_token(self, token: str) -> bool:
+        """Save token to keyring or fallback file"""
+        if not token:
+            return False
+            
+        # Try keyring first
+        if KEYRING_AVAILABLE:
+            try:
+                keyring.set_password(self.service_name, self.username, token)
+                return True
+            except Exception as e:
+                print(f"Keyring failed: {e}")
+        
+        # Fallback to file (simple obfuscation)
+        try:
+            # Simple obfuscation to avoid plain text (not secure encryption)
+            obfuscated = "".join([chr(ord(c) + 1) for c in token])
+            with open(self.fallback_file, 'w', encoding='utf-8') as f:
+                f.write(obfuscated)
+            # Hide file on Windows
+            if platform.system() == "Windows":
+                subprocess.run(["attrib", "+h", str(self.fallback_file)], check=False)
+            return True
+        except Exception as e:
+            print(f"Fallback save failed: {e}")
+            return False
+    
+    def get_token(self) -> Optional[str]:
+        """Retrieve token from keyring or fallback file"""
+        # Try keyring first
+        if KEYRING_AVAILABLE:
+            try:
+                token = keyring.get_password(self.service_name, self.username)
+                if token:
+                    return token
+            except Exception:
+                pass
+        
+        # Try fallback file
+        if self.fallback_file.exists():
+            try:
+                with open(self.fallback_file, 'r', encoding='utf-8') as f:
+                    obfuscated = f.read().strip()
+                return "".join([chr(ord(c) - 1) for c in obfuscated])
+            except Exception:
+                pass
+        
+        return None
 
 
 # ============================================================================
@@ -1286,6 +1345,10 @@ class DevSyncMainWindow(QMainWindow):
         
         return widget
     
+
+
+# ... (inside SettingsTab class methods) ...
+
     def create_settings_tab(self) -> QWidget:
         """Create settings tab"""
         widget = QWidget()
@@ -1307,9 +1370,17 @@ class DevSyncMainWindow(QMainWindow):
         self.github_token.setEchoMode(QLineEdit.EchoMode.Password)
         layout.addRow("Access Token:", self.github_token)
         
+        btn_layout = QHBoxLayout()
+        
         save_token_btn = QPushButton("Save Token")
         save_token_btn.clicked.connect(self.save_github_token)
-        layout.addRow("", save_token_btn)
+        btn_layout.addWidget(save_token_btn)
+        
+        test_token_btn = QPushButton("Test Token")
+        test_token_btn.clicked.connect(self.test_github_token)
+        btn_layout.addWidget(test_token_btn)
+        
+        layout.addRow("", btn_layout)
         
         # UI settings
         layout.addRow(QLabel("<h3>UI Settings</h3>"))
@@ -1437,15 +1508,8 @@ class DevSyncMainWindow(QMainWindow):
     
     def refresh_releases(self):
         """Refresh GitHub releases"""
-        github_token = None
-        if KEYRING_AVAILABLE:
-            try:
-                github_token = keyring.get_password("devsync", "github_token")
-            except:
-                pass
-        
-        if not github_token:
-            github_token = os.environ.get("GITHUB_TOKEN")
+        token_mgr = TokenManager()
+        github_token = token_mgr.get_token() or os.environ.get("GITHUB_TOKEN")
         
         github_mgr = GitHubManager(github_token)
         releases = github_mgr.get_releases()
@@ -1536,22 +1600,49 @@ class DevSyncMainWindow(QMainWindow):
                 QMessageBox.warning(self, "Error", "Failed to rollback version")
     
     def save_github_token(self):
-        """Save GitHub token to keyring"""
+        """Save GitHub token"""
         token = self.github_token.text().strip()
         
         if not token:
             QMessageBox.warning(self, "Error", "Please enter a token")
             return
         
-        if KEYRING_AVAILABLE:
-            try:
-                keyring.set_password("devsync", "github_token", token)
-                QMessageBox.information(self, "Success", "Token saved securely!")
-                self.github_token.clear()
-            except Exception as e:
-                QMessageBox.warning(self, "Error", f"Failed to save token: {e}")
+        token_mgr = TokenManager()
+        if token_mgr.save_token(token):
+            QMessageBox.information(self, "Success", "Token saved successfully!")
+            self.github_token.clear()
         else:
-            QMessageBox.warning(self, "Error", "Keyring not available. Please install keyring package.")
+            QMessageBox.warning(self, "Error", "Failed to save token")
+
+    def test_github_token(self):
+        """Test the saved GitHub token"""
+        token_mgr = TokenManager()
+        token = token_mgr.get_token() or os.environ.get("GITHUB_TOKEN")
+        
+        if not token:
+            QMessageBox.warning(self, "Error", "No token found. Please save one first.")
+            return
+            
+        try:
+            if GITHUB_AVAILABLE:
+                auth = Auth.Token(token)
+                g = Github(auth=auth)
+                user = g.get_user()
+                login = user.login
+                scopes = g.oauth_scopes
+                
+                msg = f"✅ Authentication Successful!\n\nUser: {login}\nScopes: {scopes}\n\n"
+                
+                if 'repo' in scopes or 'public_repo' in scopes:
+                     msg += "Has 'repo' scope: YES"
+                else:
+                     msg += "Has 'repo' scope: NO (Releases might fail)"
+                
+                QMessageBox.information(self, "Token Valid", msg)
+            else:
+                QMessageBox.warning(self, "Error", "PyGithub not installed")
+        except Exception as e:
+            QMessageBox.critical(self, "Token Invalid", f"Authentication failed:\n{str(e)}")
     
     def start_deployment_wizard(self):
         """Launch deployment wizard"""

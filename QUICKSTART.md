@@ -26,16 +26,25 @@ The application window will open showing the dashboard.
 
 ### Step 3: Configure GitHub Token (Optional)
 
-For GitHub release creation:
+For GitHub release creation, you need a Personal Access Token (PAT).
 
-1. Click the **Settings** tab
-2. Enter your GitHub Personal Access Token
-3. Click **Save Token**
+**Required Permissions:**
 
-> **How to get a token:**
-> - Go to GitHub → Settings → Developer settings → Personal access tokens
-> - Generate new token with `repo` and `workflow` scopes
-> - Copy and paste into DevSync
+*   **Classic Token (Recommended):**
+    *   Select **`repo`** scope (Full control of private repositories).
+*   **Fine-grained Token:**
+    *   **Repository access**: Select your specific repository.
+    *   **Permissions** -> **Repository permissions**:
+        *   **Contents**: `Read and write`
+        *   **Metadata**: `Read-only` (default)
+
+**How to set it up:**
+
+1.  Go to **GitHub Settings** → **Developer settings** → **Personal access tokens**.
+2.  Generate a new token with the permissions listed above.
+3.  Open DevSync, go to the **Settings** tab.
+4.  Paste your token and click **Save Token**.
+5.  (Optional) Click **Test Token** to verify permissions.
 
 ### Step 4: Your First Deployment
 

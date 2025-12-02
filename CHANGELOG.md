@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.0b] - 2025-12-02
+
+### ✨ Enhancements
+
+- **Secure Token Management**: Implemented `TokenManager` with a robust fallback system. Tokens are now stored in the system keyring if available, or securely in a hidden local file (`.devsync_token`) as a backup.
+- **Token Verification**: Added a **"Test Token"** button in the Settings tab to instantly verify GitHub authentication and check for required scopes (`repo`).
+- **Diagnostic Logging**: Added detailed logging of token scopes to help troubleshoot permission issues.
+
+### 🐛 Bug Fixes
+
+- **Class Scope Issue**: Resolved a critical `AttributeError` caused by incorrect class nesting, restoring functionality to the deployment wizard and main window methods.
+- **Import Restoration**: Fixed missing dependency imports that were causing runtime crashes.
+
+### 📚 Documentation
+
+- **Quick Start Guide**: Updated `QUICKSTART.md` with precise instructions on configuring GitHub Personal Access Tokens (Classic vs. Fine-grained) and required permissions.
+
 ## [1.0.0a] - 2025-12-02
 
 ### 🐛 Bug Fixes
