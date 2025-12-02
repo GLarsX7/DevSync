@@ -36,7 +36,7 @@ jobs:
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           
           # Validate semantic version format
-          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(a|b|rc)?[0-9]*$ ]]; then
+          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+.*$ ]]; then
             echo "❌ Invalid version format: $VERSION"
             echo "is_valid=false" >> $GITHUB_OUTPUT
             exit 1
@@ -107,12 +107,29 @@ jobs:
           pip install pytest pytest-cov
       
       - name: Run tests
+        continue-on-error: true
+        id: pytest
         run: |
-          pytest tests/ --cov=. --cov-report=xml --cov-report=term || echo "⚠️ Tests not found or failed"
+          pytest tests/ --cov=. --cov-report=xml --cov-report=term
+      
+      - name: Check test results
+        shell: bash
+        run: |
+          if [ ${{ steps.pytest.outcome }} == 'failure' ]; then
+            if [ -d "tests" ] && [ "$(find tests -name 'test_*.py' -o -name '*_test.py' | wc -l)" -eq 0 ]; then
+              echo "⏭️ No tests found - skipping"
+              exit 0
+            else
+              echo "❌ Tests failed"
+              exit 1
+            fi
+          else
+            echo "✅ Tests passed"
+          fi
       
       - name: Upload coverage
         uses: codecov/codecov-action@v4
-        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.11'
+        if: steps.pytest.outcome == 'success' && matrix.os == 'ubuntu-latest' && matrix.python-version == '3.11'
         with:
           file: ./coverage.xml
           flags: unittests

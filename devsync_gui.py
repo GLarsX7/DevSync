@@ -76,63 +76,56 @@ class VersionType(Enum):
 
 @dataclass
 class Version:
-    """Semantic version representation"""
+    """Semantic version representation with custom suffix support"""
     major: int
     minor: int
     patch: int
-    suffix_type: VersionType = VersionType.STABLE
-    suffix_number: int = 0
+    suffix: str = ""  # Custom suffix (e.g., 'a', 'b', 'rc', 'c', '-beta', etc.)
 
     def __str__(self) -> str:
         base = f"{self.major}.{self.minor}.{self.patch}"
-        if self.suffix_type != VersionType.STABLE:
-            if self.suffix_number > 0:
-                return f"{base}{self.suffix_type.value}{self.suffix_number}"
-            return f"{base}{self.suffix_type.value}"
+        if self.suffix:
+            return f"{base}{self.suffix}"
         return base
 
     @classmethod
     def parse(cls, version_string: str) -> 'Version':
-        """Parse version string into Version object"""
-        pattern = r'^(\d+)\.(\d+)\.(\d+)(a|b|rc)?(\d*)$'
+        """Parse version string into Version object - supports custom suffixes"""
+        # Match: major.minor.patch followed by optional custom suffix
+        pattern = r'^(\d+)\.(\d+)\.(\d+)(.*)$'
         match = re.match(pattern, version_string.strip())
         
         if not match:
             raise ValueError(f"Invalid version format: {version_string}")
         
-        major, minor, patch, suffix, suffix_num = match.groups()
-        
-        suffix_type = VersionType.STABLE
-        suffix_number = 0
-        
-        if suffix:
-            suffix_type = VersionType(suffix)
-            suffix_number = int(suffix_num) if suffix_num else 0
+        major, minor, patch, suffix = match.groups()
         
         return cls(
             major=int(major),
             minor=int(minor),
             patch=int(patch),
-            suffix_type=suffix_type,
-            suffix_number=suffix_number
+            suffix=suffix.strip()
         )
 
     def bump(self, bump_type: str = "patch") -> 'Version':
         """Bump version following logical rules"""
-        if self.suffix_type != VersionType.STABLE:
-            if self.suffix_type == VersionType.ALPHA:
-                return Version(self.major, self.minor, self.patch, VersionType.BETA, 0)
-            elif self.suffix_type == VersionType.BETA:
-                return Version(self.major, self.minor, self.patch, VersionType.RC, 0)
-            else:  # RC -> stable
-                return Version(self.major, self.minor, self.patch, VersionType.STABLE, 0)
+        # If there's a suffix, remove it when bumping
+        if self.suffix:
+            # Check if it's a known pre-release suffix
+            if self.suffix in ['a', 'b', 'rc'] or self.suffix.startswith('a') or self.suffix.startswith('b') or self.suffix.startswith('rc'):
+                # Remove suffix and return stable version
+                return Version(self.major, self.minor, self.patch, "")
+            else:
+                # For custom suffixes, just remove them
+                return Version(self.major, self.minor, self.patch, "")
         
         if bump_type == "major":
-            return Version(self.major + 1, 0, 0)
+            return Version(self.major + 1, 0, 0, "")
         elif bump_type == "minor":
-            return Version(self.major, self.minor + 1, 0)
+            return Version(self.major, self.minor + 1, 0, "")
         else:  # patch
-            return Version(self.major, self.minor, self.patch + 1)
+            return Version(self.major, self.minor, self.patch + 1, "")
+
 
 
 @dataclass
@@ -659,9 +652,12 @@ class DeploymentWorker(QThread):
             if github_mgr.github:
                 self.progress.emit(8, "Creating GitHub release")
                 self.log.emit("Creating GitHub release...", "info")
+                
+                release_name = self.config.get('release_title') or f"Release {new_version}"
+                
                 release_url = github_mgr.create_release(
                     tag=tag_name,
-                    name=f"Release {new_version}",
+                    name=release_name,
                     body=self.changelog_entry or f"Release {new_version}",
                     draft=self.config.get('draft_release', False),
                     prerelease=self.config.get('prerelease', False)
@@ -884,6 +880,10 @@ class OptionsPage(QWizardPage):
         
         layout = QFormLayout()
         
+        self.release_title = QLineEdit()
+        self.release_title.setPlaceholderText("Auto-generated if empty")
+        layout.addRow("Release Title:", self.release_title)
+        
         self.auto_merge = QCheckBox("Automatically merge to main branch")
         self.auto_merge.setChecked(True)
         layout.addRow("Auto-merge:", self.auto_merge)
@@ -897,6 +897,7 @@ class OptionsPage(QWizardPage):
         self.setLayout(layout)
     
     def validatePage(self):
+        self.wizard().config['release_title'] = self.release_title.text().strip()
         self.wizard().config['auto_merge'] = self.auto_merge.isChecked()
         self.wizard().config['draft_release'] = self.draft_release.isChecked()
         self.wizard().config['prerelease'] = self.prerelease.isChecked()
@@ -935,6 +936,7 @@ class ConfirmationPage(QWizardPage):
         <table>
         <tr><td><b>Current Version:</b></td><td>{current}</td></tr>
         <tr><td><b>Next Version:</b></td><td>{next_ver}</td></tr>
+        <tr><td><b>Release Title:</b></td><td>{config.get('release_title') or f"Release {next_ver}"}</td></tr>
         <tr><td><b>Auto-merge:</b></td><td>{'Yes' if config.get('auto_merge') else 'No'}</td></tr>
         <tr><td><b>Draft Release:</b></td><td>{'Yes' if config.get('draft_release') else 'No'}</td></tr>
         <tr><td><b>Pre-release:</b></td><td>{'Yes' if config.get('prerelease') else 'No'}</td></tr>
@@ -1633,10 +1635,13 @@ class DevSyncMainWindow(QMainWindow):
                 
                 msg = f"✅ Authentication Successful!\n\nUser: {login}\nScopes: {scopes}\n\n"
                 
-                if 'repo' in scopes or 'public_repo' in scopes:
-                     msg += "Has 'repo' scope: YES"
+                if scopes:
+                    if 'repo' in scopes or 'public_repo' in scopes:
+                         msg += "Has 'repo' scope: YES"
+                    else:
+                         msg += "Has 'repo' scope: NO (Releases might fail)"
                 else:
-                     msg += "Has 'repo' scope: NO (Releases might fail)"
+                    msg += "Token type: Fine-grained (or no scopes available).\nPermissions cannot be verified via scopes."
                 
                 QMessageBox.information(self, "Token Valid", msg)
             else:

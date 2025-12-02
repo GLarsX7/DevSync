@@ -2,6 +2,30 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.2c] - 2025-12-02
+
+### ✨ New Features
+
+
+- **Custom Version Suffixes**: Version system now supports any custom suffix (e.g., `1.0.2c`, `2.0.0-beta`, `1.5.0-alpha.1`), not just predefined `a`, `b`, `rc` types.
+- **Test Suite**: Implemented comprehensive unit tests for core functionality (`Version`, `VersionManager`, `TokenManager`).
+- **Custom Release Titles**: Added input field in deployment wizard to specify custom release names.
+
+### 🔧 CI/CD Improvements
+
+- **Automated Testing**: Tests now run automatically in CI/CD pipeline across multiple Python versions (3.9-3.12) and operating systems (Ubuntu, Windows, macOS).
+- **Test Result Validation**: Enhanced test job with proper error handling and result validation.
+- **Coverage Reporting**: Integrated code coverage reporting with Codecov.
+
+### 🐛 Bug Fixes
+
+- **Fine-grained Token Support**: Fixed crash when testing Fine-grained Personal Access Tokens (which return `None` for scopes).
+- **Token Scope Detection**: Improved handling of tokens without OAuth scopes.
+
+### 📚 Documentation
+
+- **Confirmation Summary**: Release title now displayed in deployment confirmation step.
+
 ## [1.0.0b] - 2025-12-02
 
 ### ✨ Enhancements
