@@ -61,6 +61,21 @@ try:
 except ImportError:
     MARKDOWN_AVAILABLE = False
 
+# Modern Design System
+try:
+    from design_system import (
+        Colors, Typography, Spacing, BorderRadius,
+        Animation, StyleSheet, Theme, get_font, get_color
+    )
+    from modern_components import (
+        ModernCard, AnimatedButton, ModernSpinner,
+        ToastNotification, StatCard, ActivityItem, ModernProgressBar
+    )
+    MODERN_UI_AVAILABLE = True
+except ImportError:
+    MODERN_UI_AVAILABLE = False
+    print("⚠️  Modern UI components not available. Install design_system.py and modern_components.py")
+
 
 # ============================================================================
 # CORE DATA MODELS
@@ -726,6 +741,10 @@ class DeploymentWizard(QWizard):
         
         self.config = {}
         
+        # Apply dark mode if needed
+        if parent and hasattr(parent, 'current_theme'):
+            self.apply_theme(parent.current_theme)
+        
         # Add pages
         self.addPage(VersionBumpPage(self))
         self.addPage(ChangelogPage(self))
@@ -734,6 +753,101 @@ class DeploymentWizard(QWizard):
         self.addPage(ConfirmationPage(self))
         self.addPage(ProgressPage(self))
         self.addPage(ResultsPage(self))
+    
+    def apply_theme(self, theme: str):
+        """Apply theme to wizard"""
+        if theme.lower() == "dark":
+            if MODERN_UI_AVAILABLE:
+                colors = Colors.DARK
+            else:
+                # Fallback dark theme
+                self.setStyleSheet("""
+                    QWizard {
+                        background-color: #2b2b2b;
+                        color: #ffffff;
+                    }
+                    QWizardPage {
+                        background-color: #2b2b2b;
+                        color: #ffffff;
+                    }
+                    QLabel {
+                        color: #ffffff;
+                    }
+                    QRadioButton {
+                        color: #ffffff;
+                    }
+                    QCheckBox {
+                        color: #ffffff;
+                    }
+                    QLineEdit, QTextEdit {
+                        background-color: #1e1e1e;
+                        color: #ffffff;
+                        border: 1px solid #555;
+                    }
+                    QPushButton {
+                        background-color: #0066FF;
+                        color: white;
+                        border: none;
+                        padding: 8px 16px;
+                        border-radius: 4px;
+                    }
+                    QPushButton:hover {
+                        background-color: #0052CC;
+                    }
+                """)
+                return
+            
+            # Modern dark theme
+            self.setStyleSheet(f"""
+                QWizard {{
+                    background: {colors['bg_secondary']};
+                    color: {colors['text_primary']};
+                }}
+                QWizardPage {{
+                    background: {colors['bg_secondary']};
+                    color: {colors['text_primary']};
+                }}
+                QLabel {{
+                    color: {colors['text_primary']};
+                }}
+                QRadioButton {{
+                    color: {colors['text_primary']};
+                }}
+                QCheckBox {{
+                    color: {colors['text_primary']};
+                }}
+                QLineEdit, QTextEdit, QTextBrowser {{
+                    background: {colors['bg_primary']};
+                    color: {colors['text_primary']};
+                    border: 2px solid {colors['border']};
+                    border-radius: {BorderRadius.MD}px;
+                    padding: {Spacing.SM}px;
+                }}
+                QLineEdit:focus, QTextEdit:focus {{
+                    border-color: {colors['primary']};
+                }}
+                QPushButton {{
+                    background: {colors['primary']};
+                    color: white;
+                    border: none;
+                    padding: {Spacing.SM}px {Spacing.LG}px;
+                    border-radius: {BorderRadius.MD}px;
+                    font-weight: {Typography.WEIGHTS['semibold']};
+                }}
+                QPushButton:hover {{
+                    background: {colors['primary_hover']};
+                }}
+                QProgressBar {{
+                    border: none;
+                    border-radius: {BorderRadius.SM}px;
+                    background: {colors['bg_tertiary']};
+                    height: 8px;
+                }}
+                QProgressBar::chunk {{
+                    background: {colors['primary']};
+                    border-radius: {BorderRadius.SM}px;
+                }}
+            """)
 
 
 class VersionBumpPage(QWizardPage):
@@ -1367,48 +1481,237 @@ class DevSyncMainWindow(QMainWindow):
 # ... (inside SettingsTab class methods) ...
 
     def create_settings_tab(self) -> QWidget:
-        """Create settings tab"""
+        """Create settings tab with proper dark mode support"""
         widget = QWidget()
-        layout = QFormLayout(widget)
+        layout = QVBoxLayout(widget)
+        layout.setSpacing(Spacing.LG if MODERN_UI_AVAILABLE else 16)
         
-        # Git settings
-        layout.addRow(QLabel("<h3>Git Settings</h3>"))
+        # Import settings manager
+        try:
+            from settings_manager import SettingsManager, GitHubAuthHelper
+            self.settings_mgr = SettingsManager()
+            user_settings = self.settings_mgr.load_settings()
+        except ImportError:
+            QMessageBox.warning(self, "Error", "Settings manager not available")
+            return widget
         
+        # Determine theme colors
+        is_dark = self.current_theme == "dark"
+        if MODERN_UI_AVAILABLE:
+            colors = Colors.DARK if is_dark else Colors.LIGHT
+        else:
+            colors = None
+        
+        # Git Settings Card
+        if MODERN_UI_AVAILABLE:
+            git_card = ModernCard(theme=Theme.DARK if is_dark else Theme.LIGHT)
+        else:
+            git_card = QGroupBox("Git Configuration")
+        
+        git_layout = QFormLayout(git_card)
+        
+        # Title
+        git_title = QLabel("<h3>Git Configuration</h3>")
+        if colors:
+            git_title.setStyleSheet(f"color: {colors['text_primary']};")
+        git_layout.addRow(git_title)
+        
+        # User Name
+        user_label = QLabel("User Name:")
+        if colors:
+            user_label.setStyleSheet(f"color: {colors['text_primary']};")
         self.git_user = QLineEdit()
-        layout.addRow("User Name:", self.git_user)
+        self.git_user.setText(user_settings.git_user)
+        self.git_user.setPlaceholderText("Your Name")
+        if MODERN_UI_AVAILABLE:
+            self.git_user.setStyleSheet(StyleSheet.input(Theme.DARK if is_dark else Theme.LIGHT))
+        git_layout.addRow(user_label, self.git_user)
         
+        # Email
+        email_label = QLabel("Email:")
+        if colors:
+            email_label.setStyleSheet(f"color: {colors['text_primary']};")
         self.git_email = QLineEdit()
-        layout.addRow("Email:", self.git_email)
+        self.git_email.setText(user_settings.git_email)
+        self.git_email.setPlaceholderText("your.email@example.com")
+        if MODERN_UI_AVAILABLE:
+            self.git_email.setStyleSheet(StyleSheet.input(Theme.DARK if is_dark else Theme.LIGHT))
+        git_layout.addRow(email_label, self.git_email)
         
-        # GitHub settings
-        layout.addRow(QLabel("<h3>GitHub Settings</h3>"))
+        # Save button
+        if MODERN_UI_AVAILABLE:
+            save_git_btn = AnimatedButton("Save Git Settings", variant='primary', theme=Theme.DARK if is_dark else Theme.LIGHT)
+        else:
+            save_git_btn = QPushButton("Save Git Settings")
+        save_git_btn.clicked.connect(self.save_git_settings)
+        git_layout.addRow("", save_git_btn)
         
+        layout.addWidget(git_card)
+        
+        # GitHub Settings Card
+        if MODERN_UI_AVAILABLE:
+            github_card = ModernCard(theme=Theme.DARK if is_dark else Theme.LIGHT)
+        else:
+            github_card = QGroupBox("GitHub Authentication")
+        
+        github_layout = QFormLayout(github_card)
+        
+        # Title
+        github_title = QLabel("<h3>GitHub Authentication</h3>")
+        if colors:
+            github_title.setStyleSheet(f"color: {colors['text_primary']};")
+        github_layout.addRow(github_title)
+        
+        # Token status
+        has_token = self.settings_mgr.get_github_token() is not None
+        token_status = "✅ Token Saved" if has_token else "❌ No Token"
+        storage_loc = self.settings_mgr._get_token_storage_location()
+        
+        status_label = QLabel(f"<b>{token_status}</b><br><small>Storage: {storage_loc}</small>")
+        if colors:
+            status_color = colors['success'] if has_token else colors['error']
+            status_label.setStyleSheet(f"color: {status_color};")
+        github_layout.addRow("Status:", status_label)
+        
+        # Help text - properly themed
+        help_text = QLabel(
+            "<b>How to create a GitHub Token:</b><br>"
+            "1. Click 'Create Token' button below<br>"
+            "2. GitHub will open in your browser<br>"
+            "3. Select scopes: <b>repo</b> and <b>workflow</b><br>"
+            "4. Click 'Generate token'<br>"
+            "5. Copy the token and paste below<br>"
+            "6. Click 'Save Token'"
+        )
+        help_text.setWordWrap(True)
+        if colors:
+            help_text.setStyleSheet(f"""
+                background: {colors['bg_secondary']};
+                color: {colors['text_secondary']};
+                padding: {Spacing.MD}px;
+                border-radius: {BorderRadius.MD}px;
+                border: 1px solid {colors['border']};
+            """)
+        else:
+            help_text.setStyleSheet("background: #f0f0f0; padding: 10px; border-radius: 5px;")
+        github_layout.addRow(help_text)
+        
+        # Token input
+        token_label = QLabel("Access Token:")
+        if colors:
+            token_label.setStyleSheet(f"color: {colors['text_primary']};")
         self.github_token = QLineEdit()
         self.github_token.setEchoMode(QLineEdit.EchoMode.Password)
-        layout.addRow("Access Token:", self.github_token)
+        self.github_token.setPlaceholderText("ghp_xxxxxxxxxxxxxxxxxxxx")
+        if MODERN_UI_AVAILABLE:
+            self.github_token.setStyleSheet(StyleSheet.input(Theme.DARK if is_dark else Theme.LIGHT))
+        github_layout.addRow(token_label, self.github_token)
         
+        # Buttons
         btn_layout = QHBoxLayout()
         
-        save_token_btn = QPushButton("Save Token")
-        save_token_btn.clicked.connect(self.save_github_token)
-        btn_layout.addWidget(save_token_btn)
+        if MODERN_UI_AVAILABLE:
+            create_token_btn = AnimatedButton("Create Token", variant='secondary', theme=Theme.DARK if is_dark else Theme.LIGHT)
+            save_token_btn = AnimatedButton("Save Token", variant='primary', theme=Theme.DARK if is_dark else Theme.LIGHT)
+            test_token_btn = AnimatedButton("Test Token", variant='secondary', theme=Theme.DARK if is_dark else Theme.LIGHT)
+        else:
+            create_token_btn = QPushButton("Create Token")
+            save_token_btn = QPushButton("Save Token")
+            test_token_btn = QPushButton("Test Token")
         
-        test_token_btn = QPushButton("Test Token")
+        create_token_btn.clicked.connect(lambda: GitHubAuthHelper.open_token_creation_page())
+        save_token_btn.clicked.connect(self.save_github_token)
         test_token_btn.clicked.connect(self.test_github_token)
+        
+        btn_layout.addWidget(create_token_btn)
+        btn_layout.addWidget(save_token_btn)
         btn_layout.addWidget(test_token_btn)
         
-        layout.addRow("", btn_layout)
+        github_layout.addRow("", btn_layout)
         
-        # UI settings
-        layout.addRow(QLabel("<h3>UI Settings</h3>"))
+        layout.addWidget(github_card)
         
+        # UI Settings Card
+        if MODERN_UI_AVAILABLE:
+            ui_card = ModernCard(theme=Theme.DARK if is_dark else Theme.LIGHT)
+        else:
+            ui_card = QGroupBox("Appearance")
+        
+        ui_layout = QFormLayout(ui_card)
+        
+        # Title
+        ui_title = QLabel("<h3>Appearance</h3>")
+        if colors:
+            ui_title.setStyleSheet(f"color: {colors['text_primary']};")
+        ui_layout.addRow(ui_title)
+        
+        # Theme selector
+        theme_label = QLabel("Theme:")
+        if colors:
+            theme_label.setStyleSheet(f"color: {colors['text_primary']};")
         self.theme_combo = QComboBox()
         self.theme_combo.addItems(["Light", "Dark"])
         self.theme_combo.setCurrentText(self.current_theme.capitalize())
         self.theme_combo.currentTextChanged.connect(self.change_theme)
-        layout.addRow("Theme:", self.theme_combo)
+        if colors:
+            self.theme_combo.setStyleSheet(f"""
+                QComboBox {{
+                    background: {colors['bg_primary']};
+                    color: {colors['text_primary']};
+                    border: 2px solid {colors['border']};
+                    border-radius: {BorderRadius.MD}px;
+                    padding: {Spacing.SM}px {Spacing.MD}px;
+                }}
+                QComboBox:hover {{
+                    border-color: {colors['border_dark']};
+                }}
+                QComboBox::drop-down {{
+                    border: none;
+                }}
+                QComboBox QAbstractItemView {{
+                    background: {colors['bg_primary']};
+                    color: {colors['text_primary']};
+                    selection-background-color: {colors['primary_light']};
+                    selection-color: {colors['primary']};
+                }}
+            """)
+        ui_layout.addRow(theme_label, self.theme_combo)
+        
+        layout.addWidget(ui_card)
+        
+        layout.addStretch()
         
         return widget
+    
+    def save_git_settings(self):
+        """Save Git user and email settings"""
+        try:
+            from settings_manager import UserSettings
+            
+            # Load current settings
+            settings = self.settings_mgr.load_settings()
+            
+            # Update git settings
+            settings.git_user = self.git_user.text().strip()
+            settings.git_email = self.git_email.text().strip()
+            
+            # Validate
+            if not settings.git_user or not settings.git_email:
+                QMessageBox.warning(self, "Validation Error", "Please fill in both user name and email")
+                return
+            
+            # Save
+            if self.settings_mgr.save_settings(settings):
+                if MODERN_UI_AVAILABLE:
+                    toast = ToastNotification("Git settings saved successfully!", type='success')
+                    toast.show_animated(self)
+                else:
+                    QMessageBox.information(self, "Success", "Git settings saved successfully!")
+            else:
+                QMessageBox.warning(self, "Error", "Failed to save settings")
+                
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Failed to save settings: {str(e)}")
     
     def setup_menu(self):
         """Create menu bar"""
@@ -1467,30 +1770,54 @@ class DevSyncMainWindow(QMainWindow):
         self.tray_icon.show()
     
     def apply_theme(self, theme: str):
-        """Apply color theme"""
-        if theme.lower() == "dark":
-            self.setStyleSheet("""
-                QMainWindow, QWidget {
-                    background-color: #2b2b2b;
-                    color: #ffffff;
-                }
-                QGroupBox {
-                    border: 1px solid #555;
-                    border-radius: 5px;
-                    margin-top: 10px;
-                    padding-top: 10px;
-                }
-                QGroupBox::title {
-                    color: #ffffff;
-                }
-                QTextEdit, QListWidget, QTreeWidget, QTableWidget {
-                    background-color: #1e1e1e;
-                    color: #ffffff;
-                    border: 1px solid #555;
-                }
+        """Apply modern color theme"""
+        if not MODERN_UI_AVAILABLE:
+            # Fallback to old theme
+            if theme.lower() == "dark":
+                self.setStyleSheet("""
+                    QMainWindow, QWidget {
+                        background-color: #2b2b2b;
+                        color: #ffffff;
+                    }
+                """)
+            else:
+                self.setStyleSheet("")
+            return
+        
+        # Use modern design system
+        theme_enum = Theme.DARK if theme.lower() == "dark" else Theme.LIGHT
+        
+        # Apply main window style
+        self.setStyleSheet(StyleSheet.main_window(theme_enum))
+        
+        # Update deploy button with modern style
+        if hasattr(self, 'deploy_btn'):
+            colors = Colors.DARK if theme_enum == Theme.DARK else Colors.LIGHT
+            self.deploy_btn.setStyleSheet(f"""
+                QPushButton {{
+                    background: qlineargradient(
+                        x1:0, y1:0, x2:0, y2:1,
+                        stop:0 {colors['success']},
+                        stop:1 {colors['success_hover']}
+                    );
+                    color: white;
+                    font-size: {Typography.SIZES['lg']}px;
+                    font-weight: {Typography.WEIGHTS['bold']};
+                    padding: {Spacing.MD}px {Spacing.XL}px;
+                    border: none;
+                    border-radius: {BorderRadius.LG}px;
+                    min-height: 50px;
+                }}
+                QPushButton:hover {{
+                    background: {colors['success_hover']};
+                    transform: translateY(-2px);
+                }}
+                QPushButton:pressed {{
+                    background: {colors['success']};
+                    transform: translateY(0px);
+                }}
             """)
-        else:
-            self.setStyleSheet("")
+            self.deploy_btn.setCursor(Qt.CursorShape.PointingHandCursor)
     
     def change_theme(self, theme: str):
         """Change application theme"""
@@ -1613,6 +1940,7 @@ class DevSyncMainWindow(QMainWindow):
             if version_mgr.rollback_to_version(version):
                 QMessageBox.information(self, "Success", f"Rolled back to version {version}")
                 self.refresh_dashboard()
+                self.refresh_history()
             else:
                 QMessageBox.warning(self, "Error", "Failed to rollback version")
     
@@ -1624,7 +1952,7 @@ class DevSyncMainWindow(QMainWindow):
             QMessageBox.warning(self, "Error", "Please enter a token")
             return
         
-        # Validate token format (GitHub tokens are typically 40+ characters)
+        # Validate token format
         if len(token) < 20:
             QMessageBox.warning(self, "Error", f"Token seems too short ({len(token)} characters). GitHub tokens are typically 40+ characters.")
             return
@@ -1632,17 +1960,37 @@ class DevSyncMainWindow(QMainWindow):
         print(f"💾 Saving token (length: {len(token)} characters)")
         print(f"🔑 Token preview: {token[:8]}...{token[-4:]}")
         
-        token_mgr = TokenManager()
-        if token_mgr.save_token(token):
-            QMessageBox.information(self, "Success", f"Token saved successfully!\nLength: {len(token)} characters")
-            self.github_token.clear()
+        # Use settings manager if available
+        if hasattr(self, 'settings_mgr'):
+            if self.settings_mgr.save_github_token(token):
+                storage_loc = self.settings_mgr._get_token_storage_location()
+                
+                if MODERN_UI_AVAILABLE:
+                    toast = ToastNotification(f"Token saved securely!\nStorage: {storage_loc}", type='success', duration=4000)
+                    toast.show_animated(self)
+                else:
+                    QMessageBox.information(self, "Success", f"Token saved successfully!\nStorage: {storage_loc}")
+                
+                self.github_token.clear()
+            else:
+                QMessageBox.warning(self, "Error", "Failed to save token")
         else:
-            QMessageBox.warning(self, "Error", "Failed to save token")
-
+            # Fallback to old TokenManager
+            token_mgr = TokenManager()
+            if token_mgr.save_token(token):
+                QMessageBox.information(self, "Success", f"Token saved successfully!\nLength: {len(token)} characters")
+                self.github_token.clear()
+            else:
+                QMessageBox.warning(self, "Error", "Failed to save token")
+    
     def test_github_token(self):
         """Test the saved GitHub token"""
-        token_mgr = TokenManager()
-        token = token_mgr.get_token() or os.environ.get("GITHUB_TOKEN")
+        # Try to get token from settings manager first
+        if hasattr(self, 'settings_mgr'):
+            token = self.settings_mgr.get_github_token() or os.environ.get("GITHUB_TOKEN")
+        else:
+            token_mgr = TokenManager()
+            token = token_mgr.get_token() or os.environ.get("GITHUB_TOKEN")
         
         if not token:
             QMessageBox.warning(self, "Error", "No token found. Please save one first.")
@@ -1668,6 +2016,10 @@ class DevSyncMainWindow(QMainWindow):
                          msg += "Has 'repo' scope: NO (Releases might fail)"
                 else:
                     msg += "Token type: Fine-grained (or no scopes available).\nPermissions cannot be verified via scopes."
+                
+                if MODERN_UI_AVAILABLE:
+                    toast = ToastNotification(f"Token valid! User: {login}", type='success', duration=4000)
+                    toast.show_animated(self)
                 
                 QMessageBox.information(self, "Token Valid", msg)
             else:

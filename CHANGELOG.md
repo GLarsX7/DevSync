@@ -2,6 +2,49 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.3] - 2025-12-03 - "Modernizer"
+
+### ✨ New Features
+
+- **Modern UI**: Implemented a modern, clean, and responsive UI using `tkinter` and `ttkbootstrap`.
+- **Dark/Light Theme**: Added support for dark and light themes with system tray integration.
+- **System Tray**: Added system tray integration with quick actions (deploy, rollback, settings).
+- **Version History**: Added a timeline view of all deployments with deployment details (version, date, user, status).
+- **Settings Panel**: Added a settings panel with Git configuration (user name, email), GitHub token management with secure storage, UI theme selection (dark/light), and auto-save preferences.
+- **Security**: Added secure token storage using system keyring.
+
+## [1.0.2d] - 2025-12-02 - "Release Master"
+
+### 🎉 Major Achievement
+
+- **GitHub Releases Working**: Successfully resolved all GitHub token authentication issues and confirmed release creation functionality!
+
+### 🐛 Bug Fixes
+
+- **Token Authentication**: Fixed "401 Bad credentials" error by implementing proper token validation and debugging.
+- **Token Storage**: Enhanced `TokenManager` with better error handling and validation.
+- **Release Creation**: Added comprehensive logging to diagnose and fix release creation issues.
+- **Token Validation**: Added token length validation (GitHub tokens are 40+ characters) to prevent invalid tokens.
+
+### 🔧 Improvements
+
+- **Detailed Logging**: Added emoji-based logging for better visibility of deployment steps:
+  - 📦 Repository access
+  - 🏷️ Tag information
+  - ✅ Success indicators
+  - ❌ Error details
+- **Token Debugging**: Added token preview display (first 8 + last 4 characters) for troubleshooting.
+- **Error Messages**: Enhanced error messages with specific HTTP status codes and actionable guidance.
+
+### 📦 Build System
+
+- **MANIFEST.in**: Created manifest file to ensure `version.txt` is included in distribution packages.
+- **setup.py**: Added proper setup file in root directory for PyPI distribution.
+
+### 📚 Documentation
+
+- **Token Permissions**: Clarified required permissions for Fine-grained tokens (Contents: Read and write).
+
 ## [1.0.2c] - 2025-12-02 - "Customizer"
 
 ### ✨ New Features

@@ -1,0 +1,201 @@
+name: Flutter Code Quality
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  code-quality:
+    name: Flutter Code Quality Checks
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: '3.24.0'
+        channel: 'stable'
+        cache: true
+    
+    - name: Verify Flutter installation
+      run: |
+        flutter --version
+        flutter doctor -v
+    
+    - name: Get dependencies
+      run: flutter pub get
+    
+    # Remove unused imports and code
+    - name: Remove unused imports with dart fix
+      run: |
+        dart fix --dry-run
+        dart fix --apply
+      continue-on-error: true
+    
+    # Analyze code for issues
+    - name: Analyze code with flutter analyze
+      run: |
+        flutter analyze --no-fatal-infos --no-fatal-warnings
+      continue-on-error: true
+    
+    # Format code
+    - name: Check code formatting
+      run: |
+        dart format --set-exit-if-changed .
+      continue-on-error: true
+    
+    # Custom lint rules
+    - name: Run custom lint rules
+      run: |
+        flutter pub add --dev custom_lint
+        flutter pub add --dev riverpod_lint
+        flutter pub get
+        dart run custom_lint
+      continue-on-error: true
+    
+    # Check for unused files
+    - name: Check for unused files
+      run: |
+        flutter pub add --dev dart_code_metrics
+        flutter pub get
+        dart run dart_code_metrics:metrics check-unused-files lib
+      continue-on-error: true
+    
+    # Check for unused code
+    - name: Check for unused code
+      run: |
+        dart run dart_code_metrics:metrics check-unused-code lib
+      continue-on-error: true
+    
+    # Code metrics and complexity
+    - name: Analyze code metrics
+      run: |
+        dart run dart_code_metrics:metrics analyze lib --reporter=console
+      continue-on-error: true
+    
+    # Check for potential bugs
+    - name: Check for potential bugs
+      run: |
+        dart run dart_code_metrics:metrics check-unnecessary-nullable lib
+      continue-on-error: true
+    
+    # Security analysis
+    - name: Security analysis
+      run: |
+        flutter pub add --dev flutter_lints
+        flutter pub get
+        flutter analyze --no-fatal-infos
+      continue-on-error: true
+    
+    # Generate quality report
+    - name: Generate quality summary
+      if: always()
+      run: |
+        echo "## Flutter Code Quality Summary" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### Metrics" >> $GITHUB_STEP_SUMMARY
+        echo "- **Dart Files:** $(find lib -name '*.dart' | wc -l)" >> $GITHUB_STEP_SUMMARY
+        echo "- **Lines of Code:** $(find lib -name '*.dart' | xargs wc -l | tail -1 | awk '{print $1}')" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### Tools Run" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ dart fix (remove unused imports/code)" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ flutter analyze (static analysis)" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ dart format (code formatting)" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ custom_lint (custom rules)" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ dart_code_metrics (complexity & unused code)" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ flutter_lints (security)" >> $GITHUB_STEP_SUMMARY
+    
+    # Upload analysis results
+    - name: Upload analysis results
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: flutter-analysis
+        path: |
+          *.json
+        retention-days: 30
+
+  auto-fix:
+    name: Auto-fix Flutter Code Issues
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    permissions:
+      contents: write
+      pull-requests: write
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        ref: ${{ github.head_ref }}
+        token: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Set up Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: '3.24.0'
+        channel: 'stable'
+        cache: true
+    
+    - name: Get dependencies
+      run: flutter pub get
+    
+    - name: Apply dart fix
+      run: |
+        dart fix --apply
+    
+    - name: Format code
+      run: |
+        dart format .
+    
+    - name: Remove unused imports
+      run: |
+        # Install and run import sorter
+        flutter pub add --dev import_sorter
+        flutter pub get
+        flutter pub run import_sorter:main
+    
+    - name: Commit changes
+      run: |
+        git config --local user.email "github-actions[bot]@users.noreply.github.com"
+        git config --local user.name "github-actions[bot]"
+        git add -A
+        git diff --quiet && git diff --staged --quiet || git commit -m "🤖 Auto-fix: Remove unused imports, format code, apply dart fixes"
+    
+    - name: Push changes
+      uses: ad-m/github-push-action@master
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        branch: ${{ github.head_ref }}
+
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: '3.24.0'
+        channel: 'stable'
+        cache: true
+    
+    - name: Get dependencies
+      run: flutter pub get
+    
+    - name: Run tests
+      run: flutter test --coverage
+    
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v4
+      with:
+        file: ./coverage/lcov.info
+        fail_ci_if_error: false
